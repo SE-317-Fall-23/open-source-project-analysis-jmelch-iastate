@@ -3,7 +3,8 @@
 ## Project Selected: Flask
 
 ## I. Introduction
-- Briefly introduce the purpose of this section, which is to provide a detailed description of two test cases in the selected open-source project.
+- Flask is a simple way to setup a web application using Python
+- The two tests that I decided to talk about today both are related to error handling.  One is a test to make sure custom error handlers work and the other allows for testing built in exceptions which work in a similar way when you run into errors but instead return an exception.
 
 ## II. Test Case 1: test_error_handling
 ### A. Description
@@ -65,28 +66,48 @@ def test_error_handling(app, client):
     assert rv.status_code == 403  #Tests the http code returned by the route
     assert b"forbidden" == rv.data  #Tests the data string returned by the route
 ```
-### E. Initial State
-- There is a blank app and client object at the start of the test, these need to be assigned in the test.
-### F. Transition
+### D. Initial State
+- There is an app and client object at the start of the test supplied to the test, these need to be assigned in the test with routes leading to errors so we know that error handlers work.
+### E. Transition
 - Error handlers are setup and then assigned to a route
-### G. Expected State
+### F. Expected State
 - Each route that has been assigned an error handler returns the correct http status code and data telling you what the error code means
-
-## III. Test Case 2: [Name of Test Case]
+  
+## III. Test Case 2: test_trapping_of_all_http_exceptions
 ### A. Description
-- Provide a concise overview of the purpose of the second test case.
-### B. Gherkin Syntax (if applicable)
-- If you choose to use Gherkin syntax, write the Gherkin scenario for this test case.
-### C. Test Steps
-- Enumerate the sequence of steps or actions involved in this test case.
-### D. Code Segments Under Test
-- Identify specific code segments or functions that are being tested in this case.
-```Java
-// Enter code
+- Makes sure when a client calls for something that has an error that an exception is raised
+### B. Test Steps
+- Change the app's config so that TRAP_HTTP_EXCEPTIONS is true
+- Makes sure the webpage at the route ```/fail``` aborts with a 404
+- Checks to see whether client.get raises a 404 Not found exception
+### C. Code Segments Under Test
+```path
+~\flask\tests\test_basic.py
 ```
-### E. Initial State
-- Describe the initial state or conditions of the system or component before executing the test.
-### F. Transition
-- Explain the actions or events that trigger a change in the system's state.
-### G. Expected State
-- Clearly outline the expected state or outcome after the test steps have been completed.
+
+I commented the code with what is getting tested
+
+```Python
+def test_trapping_of_all_http_exceptions(app, client):
+    app.config["TRAP_HTTP_EXCEPTIONS"] = True #This is what we are wanting to test to make sure exceptions are raised when enabling this
+
+    @app.route("/fail") # This sets up an error for a certain page
+    def fail():
+        flask.abort(404)
+
+    @app.route("/cant") #This is my code to test how this works
+    def fail2():
+        flask.abort(403)
+
+    with pytest.raises(NotFound): #This makes sure that an exception was raised when you try to use the client to get the page
+        client.get("/fail")
+
+    with pytest.raises(Forbidden): #This is my code to test h ow this works
+        client.get("/cant")
+```
+### D. Initial State
+- There is a client and app supplied to the test.  The app needs to be configered in the test so that exceptions are thrown when the client runs into an error.
+### E. Transition
+- TRAP_HTTP_EXCEPTIONS is enabled in the app config and then a route is assigned with an error
+### F. Expected State
+- The client get request raises an exception matching the error that the website route was assigned to. 
